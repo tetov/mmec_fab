@@ -14,10 +14,14 @@ workobject, speed, acceleration that should be tweaked as well.
 ```cmd
 conda create -n mmec_fab python==3.8 compas_fab==0.17 -y
 conda activate mmec_fab
-pip install git+https://bitbucket.org/ethrfl/compas_rrc@v1.0.0 --no-deps
+pip install git+https://bitbucket.org/ethrfl/compas_rrc@v1.0.0 
 cd /path/to/mmec_fab
 pip install -e .
 ```
+
+If you have trouble installation `pybullet`, use the flag `--no-deps` when
+installing `compas_rrc` and/or `mmec_fab`. All dependencies should be there
+thanks to conda installing `compas_fab`.
 
 ### Make accesible in Rhino/Grasshopper
 

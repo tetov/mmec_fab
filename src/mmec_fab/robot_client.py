@@ -131,7 +131,9 @@ class RobotClient(compas_rrc.AbbClient):
         self.send(compas_rrc.SetDigital(GRIPPER_PIN, 0))
 
         # Return to just above pickup frame
-        self.send(MoveToFrame(above_place_frame, precise_speed, precise_zone))
+        # This command is sent with send_and_wait, to make the client send one
+        # pick and place instruction at a time.
+        self.send_and_wait(MoveToFrame(above_place_frame, precise_speed, precise_zone))
 
     def roll(self, framelike_list, offset_distance, speed=50, zone=1):
         frame_list = [ensure_frame(framelike) for framelike in framelike_list]

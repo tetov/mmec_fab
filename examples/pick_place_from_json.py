@@ -3,6 +3,7 @@
 Invoked using `python examples/pick_place_from_json.py examples/pp_frames.json`
 """
 from compas import json_load
+from compas_rrc import Zone
 
 from mmec_fab import RobotClient
 
@@ -15,8 +16,15 @@ def run_pick_place(file_path):
         client.pre()
 
         for pick, place in zip(data["pick_frames"], data["place_frames"]):
-            client.pick_place(pick, place)
-
+            client.pick_place(
+                pick,
+                place,
+                travel_speed=250,
+                travel_zone=Zone.Z10,
+                precise_speed=50,
+                precise_zone=Zone.FINE,
+                offset_distance=150,
+            )
         client.post()
 
 
