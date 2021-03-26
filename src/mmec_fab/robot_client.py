@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import compas_rrc
-from compas_rrc import MoveToFrame, MoveToJoints, Zone
+from compas_rrc import MoveToFrame, MoveToJoints, Zone, Motion
 from compas_fab.backends import RosClient
 
 from mmec_fab import offset_frame
@@ -12,15 +12,13 @@ from mmec_fab import ensure_frame
 GRIPPER_PIN = "doUnitC1Out1"
 
 # Speed values
-ACCEL = 100
-ACCEL_RAMP = 100
-SPEED_OVERRIDE = 100
-TCP_MAX_SPEED = 250
+ACCEL = 100  # %
+ACCEL_RAMP = 100  # %
+SPEED_OVERRIDE = 100  # %
+TCP_MAX_SPEED = 250  # mm/s
 
-SAFE_JOINT_POSITION = [0, 0, 0, 0, 0, 0]  # six values in degrees
-
-TIMEOUT_SHORT = 10
-TIMEOUT_LONG = 30
+TIMEOUT_SHORT = 10  # seconds
+TIMEOUT_LONG = 30  # seconds
 
 TOOL = "tool0"
 WOBJ = "wobj0"
@@ -68,7 +66,7 @@ class RobotClient(compas_rrc.AbbClient):
     def pre(self, safe_joint_position=[0, 0, 0, 0, 0, 0]):
         self.check_connection_controller()
         # Open gripper
-        self.send(compas_rrc.SetDigital(GRIPPER_PIN, 0))
+        self.send(compas_rrc.SetDigital(GRIPPER_PIN, False))
 
         # Set speed and accceleration
         self.send(compas_rrc.SetAcceleration(ACCEL, ACCEL_RAMP))
@@ -81,23 +79,26 @@ class RobotClient(compas_rrc.AbbClient):
         self.confirm_start()
 
         self.send_and_wait(
-            MoveToJoints(SAFE_JOINT_POSITION, self.EXTERNAL_AXES_DUMMY, 150, 50)
+            MoveToJoints(safe_joint_position, self.EXTERNAL_AXES_DUMMY, 150, Zone.Z50)
         )
 
     def post(self, safe_joint_position=[0, 0, 0, 0, 0, 0]):
         self.send_and_wait(
-            MoveToJoints(SAFE_JOINT_POSITION, self.EXTERNAL_AXES_DUMMY, 150, 50)
+            MoveToJoints(safe_joint_position, self.EXTERNAL_AXES_DUMMY, 150, Zone.Z50)
         )
 
     def pick_place(
         self,
         pick_framelike,
         place_framelike,
+        travel_framelikes,
         travel_speed=250,
         travel_zone=Zone.Z10,
         precise_speed=50,
         precise_zone=Zone.FINE,
         offset_distance=150,
+        motion_type_travel=Motion.JOINT,
+        motion_type_precise=Motion.LINEAR,
     ):
         pick_frame = ensure_frame(pick_framelike)
         place_frame = ensure_frame(place_framelike)
@@ -105,19 +106,48 @@ class RobotClient(compas_rrc.AbbClient):
         above_pick_frame = offset_frame(pick_frame, -offset_distance)
         above_place_frame = offset_frame(place_frame, -offset_distance)
 
+        travel_frames = [ensure_frame(framelike) for framelike in travel_framelikes]
+
         # PICK
 
         # Move to just above pickup frame
-        self.send(MoveToFrame(above_pick_frame, travel_speed, travel_zone))
+        self.send(
+            MoveToFrame(
+                above_pick_frame,
+                travel_speed,
+                travel_zone,
+                motion_type=motion_type_travel,
+            )
+        )
 
         # Move to pickup frame
-        self.send(MoveToFrame(pick_frame, precise_speed, precise_zone))
+        self.send(
+            MoveToFrame(
+                pick_frame, precise_speed, precise_zone, motion_type=motion_type_precise
+            )
+        )
 
         # Activate gripper
         self.send(compas_rrc.SetDigital(GRIPPER_PIN, 1))
 
         # Return to just above pickup frame
-        self.send(MoveToFrame(above_pick_frame, precise_speed, precise_zone))
+        self.send(
+            MoveToFrame(
+                above_pick_frame,
+                precise_speed,
+                precise_zone,
+                motion_type=motion_type_precise,
+            )
+        )
+
+        # TRAVEL
+
+        for frame in travel_frames:
+            self.send(
+                MoveToFrame(
+                    frame, travel_speed, travel_zone, motion_type=motion_type_travel
+                )
+            )
 
         # PLACE
 
@@ -133,7 +163,16 @@ class RobotClient(compas_rrc.AbbClient):
         # Return to just above pickup frame
         # This command is sent with send_and_wait, to make the client send one
         # pick and place instruction at a time.
-        self.send_and_wait(MoveToFrame(above_place_frame, precise_speed, precise_zone))
+        self.send(MoveToFrame(above_place_frame, precise_speed, precise_zone))
+
+        # REVERSE TRAVEL
+        reversed_travel_frames = reversed(travel_frames)
+        for frame in reversed_travel_frames:
+            self.send(
+                MoveToFrame(
+                    frame, travel_speed, travel_zone, motion_type=motion_type_travel
+                )
+            )
 
     def roll(self, framelike_list, offset_distance, speed=50, zone=1):
         frame_list = [ensure_frame(framelike) for framelike in framelike_list]
