@@ -14,14 +14,9 @@ workobject, speed, acceleration that should be tweaked as well.
 ```cmd
 conda create -n mmec_fab python==3.8 compas_fab==0.17 -y
 conda activate mmec_fab
-pip install git+https://bitbucket.org/ethrfl/compas_rrc@v1.0.0 
 cd /path/to/mmec_fab
 pip install -e .
 ```
-
-If you have trouble installation `pybullet`, use the flag `--no-deps` when
-installing `compas_rrc` and/or `mmec_fab`. All dependencies should be there
-thanks to conda installing `compas_fab`.
 
 ### Make accesible in Rhino/Grasshopper
 
@@ -37,16 +32,20 @@ python -m compas_rhino.install -v 6.0
 #### For virtual controller
 
 ```cmd
-cd /path/to/mmec_fab/docker
+cd /path/to/mmec_fab/docker/virtual-controller
 docker-compose up -d
 ```
+
+Or right-click on file in VS Code to compose up.
 
 #### For real controller
 
 ```bash
-cd /path/to/mmec_fab/docker
-docker-compose up -d --env-file real.env
+cd /path/to/mmec_fab/docker/irc5-service-port
+docker-compose up -d 
 ```
+
+Or right-click on file in VS Code to compose up.
 
 ### Run fabrication
 
@@ -67,3 +66,5 @@ To run it:
 conda activate mmec_fab
 python /path/to/mmec_fab/examples/pick_place_from_json.py /path/to/json_file.json
 ```
+
+Or run directly from VS Code, but then you can't set input file.
