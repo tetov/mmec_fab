@@ -165,13 +165,13 @@ class RobotClient(compas_rrc.AbbClient):
         # pick and place instruction at a time.
         self.send(MoveToFrame(above_place_frame, precise_speed, precise_zone))
 
-        # REVERSE TRAVEL
-        reversed_travel_frames = reversed(travel_frames)
-        for frame in reversed_travel_frames:
-            self.send(
-                MoveToFrame(
-                    frame, travel_speed, travel_zone, motion_type=motion_type_travel
-                )
+        # # REVERSE TRAVEL
+        # reversed_travel_frames = reversed(travel_frames)
+        # for frame in reversed_travel_frames:
+        #     self.send(
+        #         MoveToFrame(
+        #             frame, travel_speed, travel_zone, motion_type=motion_type_travel
+        #         )
             )
 
     def roll(self, framelike_list, offset_distance, speed=50, zone=1):
